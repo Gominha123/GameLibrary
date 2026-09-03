@@ -36,14 +36,14 @@ public class GameService
             Leave();
             return;
         }
-        if (releaseYearInt < 1900 || releaseYearInt > DateTime.Now.Year)
+        if (releaseYearInt < 1950 || releaseYearInt > DateTime.Now.Year)
         {
             Console.WriteLine($"Release year must be between 1950 and {DateTime.Now.Year}.");
             Leave();
             return;
         }
 
-        Game newGame = new Game(title, genre, developer, ratingValue, releaseYearInt, games.Count);
+        Game newGame = new Game(title, genre, developer, ratingValue, releaseYearInt);
         games.Add(newGame);
 
         Console.Clear();
@@ -53,10 +53,7 @@ public class GameService
     {
         Console.WriteLine("List Games");
 
-        foreach (Game game in games)
-        {
-            Console.WriteLine($"Title: {game.Title}, Genre: {game.Genre}, Developer: {game.Developer}, Rating: {game.Rating}, Release Year: {game.ReleaseYear}");
-        }
+        ShowGame(games);
         Leave();
     }
 
@@ -69,7 +66,6 @@ public class GameService
         {
             Console.WriteLine("Search Game");
             Console.WriteLine("Select how you wanna search the game");
-
             Console.WriteLine("1 - Title");
             Console.WriteLine("2 - Genre");
             Console.WriteLine("3 - Developer");
@@ -79,7 +75,7 @@ public class GameService
 
             option = ReadInt();
 
-
+            Console.Clear();
             if (option == 1)
             {
                 Console.WriteLine("Enter the title of the game:");
@@ -102,69 +98,67 @@ public class GameService
             }
             else if (option == 6)
             {
-                Console.Clear();
                 return;
             }
             else
             {
-                Console.Clear();
                 Console.WriteLine("Invalid option");
             }
         }
 
+        List<Game> results = new List<Game>();
         searchCondition = Console.ReadLine();
         if (option == 1)
         {
-            foreach (Game game in games)
-            {
-                if (game.Title.Contains(searchCondition, StringComparison.OrdinalIgnoreCase))
-                {
-                    ShowGame(game);
-                }
-            }
+            results = games.Where(g => g.Title.Contains(searchCondition, StringComparison.OrdinalIgnoreCase)).ToList();
+            ShowGame(results);
         }
         else if (option == 2)
         {
-            foreach (Game game in games)
-            {
-                if (game.Genre.Contains(searchCondition, StringComparison.OrdinalIgnoreCase))
-                {
-                    ShowGame(game);
-                }
-            }
+            results = games.Where(g => g.Genre.Contains(searchCondition, StringComparison.OrdinalIgnoreCase)).ToList();
+            ShowGame(results);
         }
         else if (option == 3)
         {
-            foreach (Game game in games)
-            {
-                if (game.Developer.Contains(searchCondition, StringComparison.OrdinalIgnoreCase))
-                {
-                    ShowGame(game);
-                }
-            }
+            results = games.Where(g => g.Developer.Contains(searchCondition, StringComparison.OrdinalIgnoreCase)).ToList();
+            ShowGame(results);
         }
         else if (option == 4)
         {
-            searchCondition = searchCondition.Replace('.', ','); // normalize
+            searchCondition = searchCondition.Replace(',', '.'); // normalize
 
-            foreach (Game game in games)
+            if (!float.TryParse(searchCondition, NumberStyles.Float, CultureInfo.InvariantCulture, out float ratingValue))
             {
-                if (game.Rating.ToString().Contains(searchCondition, StringComparison.OrdinalIgnoreCase))
-                {
-                    ShowGame(game);
-                }
+                Console.WriteLine("Invalid rating. Please enter a valid number.");
+                Leave();
+                return;
             }
-
+            results = games.Where(g => g.Rating.Equals(ratingValue)).ToList();
+            //results = games.Where(g => g.Rating.ToString().Contains(searchCondition, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (results.Count == 0)
+            {
+                Console.WriteLine("No games found with the specified rating.");
+                Leave();
+                return;
+            }
+            ShowGame(results);
         }
         else if (option == 5)
         {
-            foreach (Game game in games)
+            if (!int.TryParse(searchCondition, out int releaseYearValue))
             {
-                if (game.ReleaseYear.ToString().Contains(searchCondition, StringComparison.OrdinalIgnoreCase))
-                {
-                    ShowGame(game);
-                }
+                Console.WriteLine("Invalid release Year. Please enter a valid number.");
+                Leave();
+                return;
             }
+            results = games.Where(g => g.ReleaseYear.Equals(releaseYearValue)).ToList();
+            if (!results.Any())
+            {
+                Console.WriteLine("No games found with the specified release year.");
+                Leave();
+                return;
+            }
+            ShowGame(results);
         }
 
         Leave();
@@ -176,101 +170,48 @@ public class GameService
         Console.WriteLine("Enter the title of the game you want to remove:");
 
         string gameTitle = Console.ReadLine();
-        int gamesFound = 0;
-        List<Game> indexOfGamesToBeRemoved = new List<Game>();
+        List<Game> gamesToBeRemoved = new List<Game>();
 
-        indexOfGamesToBeRemoved = games.Where(g => g.Title.Equals(gameTitle, StringComparison.OrdinalIgnoreCase)).ToList();
+        gamesToBeRemoved = games.Where(g => g.Title.Equals(gameTitle, StringComparison.OrdinalIgnoreCase)).ToList();
 
-        if (indexOfGamesToBeRemoved.Count == 0)
+
+        if (!gamesToBeRemoved.Any())
         {
             Console.WriteLine("Game not found");
             Leave();
             return;
         }
-        else if (indexOfGamesToBeRemoved.Count > 1)
-        {
-            Console.WriteLine("Select the id of the game you want to remove: ");
-            foreach(Game game in indexOfGamesToBeRemoved)
-            {
-                Console.Write($"Id: {game.Id} ");
-                ShowGame(game);
-            }
-
-            int idSelected = ReadInt();
-            if(idSelected < 0 || idSelected >= indexOfGamesToBeRemoved.Count)
-            {
-                Console.WriteLine("Invalid id");
-                Leave();
-                Console.Clear();
-                return;
-            }
-            games.RemoveAt(idSelected);
-            Console.WriteLine($"{gameTitle} with Id {idSelected} was removed");
-            Leave();
-
-        }
-        else if (indexOfGamesToBeRemoved.Count == 1)
+        else if (gamesToBeRemoved.Count == 1)
         {
             Console.WriteLine($"{gameTitle} was removed");
-            games.Remove(indexOfGamesToBeRemoved[0]);
+            games.Remove(gamesToBeRemoved[0]);
             Leave();
         }
+        else if (gamesToBeRemoved.Count > 1)
+        {
+            int i = 0;
+            foreach (Game game in gamesToBeRemoved)
+            {
+                Console.Write($"{i} - ");
+                ShowGame(game);
+                i++;
+            }
+            Console.WriteLine("Multiple games found with the same title. Please select the game you want to remove:\n");
 
-        //foreach (Game game in games)
-        //{
-        //    if (gameTitle == game.Title)
-        //    {
-        //        indexOfGamesToBeRemoved.Add(gamesFound);
-        //    }
-        //    gamesFound++;
-        //}
-        //if (indexOfGamesToBeRemoved.Count == 0)
-        //{
-        //    Console.WriteLine("Game not found");
-        //    Leave();
-        //}
-        //else if (indexOfGamesToBeRemoved.Count > 1)
-        //{
-        //    Console.Clear();
-        //    Console.WriteLine("Multiple games found with the same title. Please select the id of the game to remove the one you want:\n");
+            int option = ReadInt();
 
-        //    int i = 0;
-        //    foreach (Game game in games)
-        //    {
-        //        if (indexOfGamesToBeRemoved.Contains(i))
-        //        {
-        //            Console.Write($"ID: {i + 1} ");
-        //            ShowGame(game);
-        //        }
-        //        i++;
-        //    }
-        //    Console.WriteLine("-1 to cancel");
-        //    int gameToRemove = 0;
-        //    while (gameToRemove != -1)
-        //    {
-        //        if (int.TryParse(Console.ReadLine(), out gameToRemove) && indexOfGamesToBeRemoved.Contains(gameToRemove - 1))
-        //        {
-        //            Console.WriteLine(gameTitle + " removed");
-        //            games.RemoveAt(gameToRemove - 1);
-        //            break;
-        //        }
-        //        else if (gameToRemove == -1)
-        //        {
-        //            Console.WriteLine("Operation canceled");
-        //        }
-        //        else
-        //        {
-        //            Console.WriteLine("Option invalid");
-        //        }
-        //    }
-        //    Leave();
-        //}
-        //else
-        //{
-        //    Console.WriteLine(gameTitle + " removed");
-        //    games.RemoveAt(indexOfGamesToBeRemoved[0]);
-        //    Leave();
-        //}
+            if (option >= 0 && option < gamesToBeRemoved.Count)
+            {
+                Console.WriteLine($"{gameTitle} was removed");
+                games.Remove(gamesToBeRemoved[option]);
+            }
+            else
+            {
+                Console.WriteLine("Invalid option. Operation canceled.");
+            }
+
+            Leave();
+        }
     }
 
     public void FilterGames(List<Game> games)
@@ -295,21 +236,24 @@ public class GameService
 
                 string rating = Console.ReadLine();
                 rating = rating.Replace(',', '.'); // normalize
-                if (!float.TryParse(rating, NumberStyles.Float, CultureInfo.InvariantCulture, out float ratingValue) && (ratingValue > 0 && ratingValue < 5))
+                if (!float.TryParse(rating, NumberStyles.Float, CultureInfo.InvariantCulture, out float ratingValue))
                 {
-                    // handle invalid input
                     Console.WriteLine("Invalid rating. Please enter a valid number.");
                     Leave();
+                    return;
+                }
+                if (ratingValue < 0 || ratingValue > 5)
+                {
+                    Console.WriteLine("Rating must be between 0 and 5.");
+                    Leave();
+                    return;
                 }
 
-                List<Game> gamesSort = games.Where(g => g.Rating > ratingValue).ToList();
+                List<Game> gameSort = games.Where(g => g.Rating > ratingValue).ToList();
 
-                if (gamesSort.Count > 0)
+                if (gameSort.Count > 0)
                 {
-                    foreach (Game game in gamesSort)
-                    {
-                        ShowGame(game);
-                    }
+                    ShowGame(gameSort);
                 }
                 else
                 {
@@ -322,13 +266,10 @@ public class GameService
                 Console.Clear();
                 Console.WriteLine("Enter genre: ");
                 string genre = Console.ReadLine();
-                List<Game> gameSort = games.Where(g => g.Genre == genre).ToList();
+                List<Game> gameSort = games.Where(g => g.Genre.Contains(genre, StringComparison.OrdinalIgnoreCase)).ToList();
                 if (gameSort.Count > 0)
                 {
-                    foreach (Game game in gameSort)
-                    {
-                        ShowGame(game);
-                    }
+                    ShowGame(gameSort);
                 }
                 else
                 {
@@ -341,7 +282,7 @@ public class GameService
                 Console.Clear();
                 Console.WriteLine("Enter release year: ");
                 int releaseYear = ReadInt();
-                if (releaseYear <= -1 || releaseYear >= DateTime.Now.Year)
+                if (releaseYear < 1950 || releaseYear > DateTime.Now.Year)
                 {
                     Console.WriteLine("Invalid release year. Please enter a valid number.");
                     Leave();
@@ -351,10 +292,7 @@ public class GameService
                 List<Game> gameSort = games.Where(g => g.ReleaseYear > releaseYear).ToList();
                 if (gameSort.Count > 0)
                 {
-                    foreach (Game game in gameSort)
-                    {
-                        ShowGame(game);
-                    }
+                    ShowGame(gameSort);
                 }
                 else
                 {
@@ -365,14 +303,11 @@ public class GameService
             else if (option == 4)
             {
                 Console.Clear();
-                List<Game> gameSort = games.OrderBy(g => g.Rating).ToList();
+                List<Game> gameSort = games.OrderByDescending(g => g.Rating).ToList();
 
                 if (gameSort.Count > 0)
                 {
-                    foreach (Game game in gameSort)
-                    {
-                        ShowGame(game);
-                    }
+                    ShowGame(gameSort);
                 }
                 else Console.WriteLine("No games found");
 
@@ -386,10 +321,7 @@ public class GameService
 
                 if (gameSort.Count > 0)
                 {
-                    foreach (Game game in gameSort)
-                    {
-                        ShowGame(game);
-                    }
+                    ShowGame(gameSort);
                 }
                 else Console.WriteLine("No games found");
 
@@ -406,7 +338,7 @@ public class GameService
 
     public void Statistics(List<Game> games)
     {
-        if (games.Count == 0)
+        if (!games.Any())
         {
             Console.WriteLine("No games found");
             Leave();
@@ -417,9 +349,11 @@ public class GameService
         Console.WriteLine($"Total Games: {games.Count}");
         Console.WriteLine($"Average rating: {games.Average(g => g.Rating):0.00}");
         Console.WriteLine($"Highest Rated Game: {games.Max(g => g.Rating)}");
+        var top3Games = games.OrderByDescending(g => g.Rating).Take(3).Select(g => g.Title);
+        Console.WriteLine($"Top 3 rated games: {string.Join(", ", top3Games)}");
         Console.WriteLine($"Lowest Rated Game: {games.Min(g => g.Rating)}");
-        Console.WriteLine($"Oldest Game: {games.OrderBy(g => g.ReleaseYear).ToList()[0].Title}");
-        Console.WriteLine($"Newest Game: {games.OrderByDescending(g => g.ReleaseYear).ToList()[0].Title}");
+        Console.WriteLine($"Oldest Game: {games.MinBy(g => g.ReleaseYear).Title}");
+        Console.WriteLine($"Newest Game: {games.MaxBy(g => g.ReleaseYear).Title}");
 
         Leave();
     }
@@ -427,6 +361,14 @@ public class GameService
     public void ShowGame(Game game)
     {
         Console.WriteLine($"Title: {game.Title}; Genre: {game.Genre}; Developer: {game.Developer}; Rating: {game.Rating}; Release Year: {game.ReleaseYear}");
+    }
+
+    public void ShowGame(List<Game> games)
+    {
+        foreach (Game game in games)
+        {
+            ShowGame(game);
+        }
     }
 
     public int ReadInt()
