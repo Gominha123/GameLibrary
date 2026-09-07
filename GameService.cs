@@ -358,6 +358,36 @@ public class GameService
         Leave();
     }
 
+    public void HowManyGamesFromGenre(List<Game> games, string genre)
+    {
+        List<Game> gamesFound = games.Where(g => g.Genre.Contains(genre, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (gamesFound.Any())
+        {
+            Console.WriteLine($"There are {genre} games.");
+
+            Console.WriteLine($"Total {genre} Games: {gamesFound.Count}");
+
+            List<string> gameTitle = gamesFound.Select(g => g.Title).ToList();
+            ShowGameName(gamesFound);
+        }
+        else
+        {
+            Console.WriteLine($"There are no {genre} games.");
+        }
+        Leave();
+    }
+
+    public void Top3GamesAfterYearOrderedByRating(List<Game> games, int year)
+    {
+        List<Game> gamesFound = games.Where(g => g.ReleaseYear > year).OrderByDescending(g => g.Rating).Take(3).ToList();
+
+        foreach (Game game in gamesFound)
+        {
+            Console.WriteLine($"Title: {game.Title}; Rating: {game.Rating}; Release Year: {game.ReleaseYear}");
+        }
+        Leave();
+    }
+
     public void ShowGame(Game game)
     {
         Console.WriteLine($"Title: {game.Title}; Genre: {game.Genre}; Developer: {game.Developer}; Rating: {game.Rating}; Release Year: {game.ReleaseYear}");
@@ -368,6 +398,14 @@ public class GameService
         foreach (Game game in games)
         {
             ShowGame(game);
+        }
+    }
+
+    public void ShowGameName(List<Game> games)
+    {
+        foreach (Game game in games)
+        {
+            Console.WriteLine($"Title: {game.Title}");
         }
     }
 

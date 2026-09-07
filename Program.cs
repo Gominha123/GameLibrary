@@ -7,7 +7,7 @@
 
         int option = -1;
 
-        while (option != 7)
+        while (option != 9)
         {
             Console.WriteLine("Press the number for the corresponding option:");
             Console.WriteLine("1 - Add Game");
@@ -16,7 +16,9 @@
             Console.WriteLine("4 - Remove Game");
             Console.WriteLine("5 - Filter Games");
             Console.WriteLine("6 - Statistics");
-            Console.WriteLine("7 - Exit");
+            Console.WriteLine("7 - How Many Games from Genre");
+            Console.WriteLine("8 - Top 3 games after year");
+            Console.WriteLine("9 - Exit");
 
             option = service.ReadInt();
 
@@ -51,7 +53,21 @@
                 Console.Clear();
                 service.Statistics(games);
             }
-            else if (option != 7)
+            else if (option == 7)
+            {
+                Console.Clear();
+                Console.WriteLine("Enter the genre to count games from:");
+                string genre = Console.ReadLine();
+                service.HowManyGamesFromGenre(games, genre);
+            }
+            else if (option == 8)
+            {
+                Console.Clear();
+                Console.WriteLine("Select the year: ");
+                int year = service.ReadInt();
+                service.Top3GamesAfterYearOrderedByRating(games, year);
+            }
+            else if (option != 9)
             {
                 Console.Clear();
                 Console.WriteLine("Invalid option");
