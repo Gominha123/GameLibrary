@@ -2,8 +2,8 @@
 {
     public static void Main(string[] args)
     {
-        List<Game> games = new List<Game>();
-        GameService service = new GameService();
+        GameRepository<Game> repository = new GameRepository<Game>();
+        GameService service = new GameService(repository);
 
         int option = -1;
 
@@ -26,46 +26,46 @@
             if (option == 1)
             {
                 Console.Clear();
-                service.AddGame(games);
+                service.AddGame();
             }
             else if (option == 2)
             {
                 Console.Clear();
-                service.ListGames(games);
+                service.ListGames();
             }
             else if (option == 3)
             {
                 Console.Clear();
-                service.SearchGame(games);
+                service.SearchGame();
             }
             else if (option == 4)
             {
                 Console.Clear();
-                service.RemoveGame(games);
+                service.RemoveGame();
             }
-            else if(option == 5)
+            else if (option == 5)
             {
                 Console.Clear();
-                service.FilterGames(games);
+                service.FilterGames();
             }
             else if (option == 6)
             {
                 Console.Clear();
-                service.Statistics(games);
+                service.Statistics();
             }
             else if (option == 7)
             {
                 Console.Clear();
                 Console.WriteLine("Enter the genre to count games from:");
                 string genre = Console.ReadLine();
-                service.HowManyGamesFromGenre(games, genre);
+                service.HowManyGamesFromGenre(genre);
             }
             else if (option == 8)
             {
                 Console.Clear();
                 Console.WriteLine("Select the year: ");
                 int year = service.ReadInt();
-                service.Top3GamesAfterYearOrderedByRating(games, year);
+                service.Top3GamesAfterYearOrderedByRating(year);
             }
             else if (option != 9)
             {

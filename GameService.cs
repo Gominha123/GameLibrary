@@ -2,11 +2,24 @@
 
 public class GameService
 {
-    public void AddGame(List<Game> games)
+    private GameRepository<Game> repository;
+    public GameService(GameRepository<Game> _repository)
     {
+        repository = _repository;
+    }
+
+
+    public void AddGame()
+    {   
         Console.WriteLine("Add Game");
         Console.WriteLine("Enter the title of the game:");
         string title = Console.ReadLine();
+        if(string.IsNullOrWhiteSpace(title))
+        {
+            Console.WriteLine("Title cannot be empty.");
+            Leave();
+            return;
+        }
         Console.WriteLine("Enter the genre of the game:");
         string genre = Console.ReadLine();
         Console.WriteLine("Enter the developer of the game:");
@@ -44,20 +57,20 @@ public class GameService
         }
 
         Game newGame = new Game(title, genre, developer, ratingValue, releaseYearInt);
-        games.Add(newGame);
+        repository.Add(newGame);
 
         Console.Clear();
     }
 
-    public void ListGames(List<Game> games)
+    public void ListGames()
     {
         Console.WriteLine("List Games");
 
-        ShowGame(games);
+        ShowGame(repository.GetAll());
         Leave();
     }
 
-    public void SearchGame(List<Game> games)
+    public void SearchGame()
     {
         Console.Clear();
         int option = -1;
@@ -106,6 +119,7 @@ public class GameService
             }
         }
 
+        List<Game> games = repository.GetAll();
         List<Game> results = new List<Game>();
         searchCondition = Console.ReadLine();
         if (option == 1)
@@ -164,12 +178,14 @@ public class GameService
         Leave();
     }
 
-    public void RemoveGame(List<Game> games)
+    public void RemoveGame()
     {
         Console.WriteLine("Remove Game");
         Console.WriteLine("Enter the title of the game you want to remove:");
 
         string gameTitle = Console.ReadLine();
+
+        List<Game> games = repository.GetAll();
         List<Game> gamesToBeRemoved = new List<Game>();
 
         gamesToBeRemoved = games.Where(g => g.Title.Equals(gameTitle, StringComparison.OrdinalIgnoreCase)).ToList();
@@ -184,7 +200,7 @@ public class GameService
         else if (gamesToBeRemoved.Count == 1)
         {
             Console.WriteLine($"{gameTitle} was removed");
-            games.Remove(gamesToBeRemoved[0]);
+            repository.Remove(gamesToBeRemoved[0]);
             Leave();
         }
         else if (gamesToBeRemoved.Count > 1)
@@ -203,7 +219,7 @@ public class GameService
             if (option >= 0 && option < gamesToBeRemoved.Count)
             {
                 Console.WriteLine($"{gameTitle} was removed");
-                games.Remove(gamesToBeRemoved[option]);
+                repository.Remove(gamesToBeRemoved[option]);
             }
             else
             {
@@ -214,7 +230,7 @@ public class GameService
         }
     }
 
-    public void FilterGames(List<Game> games)
+    public void FilterGames()
     {
         int option = 0;
 
@@ -229,6 +245,9 @@ public class GameService
             Console.WriteLine("5 - Sort by release year");
             Console.WriteLine("6 - Exit");
             option = ReadInt();
+
+            List<Game> games = repository.GetAll();
+
             if (option == 1)
             {
                 Console.Clear();
@@ -336,8 +355,9 @@ public class GameService
         Console.Clear();
     }
 
-    public void Statistics(List<Game> games)
+    public void Statistics()
     {
+        List<Game> games = repository.GetAll();
         if (!games.Any())
         {
             Console.WriteLine("No games found");
@@ -358,8 +378,9 @@ public class GameService
         Leave();
     }
 
-    public void HowManyGamesFromGenre(List<Game> games, string genre)
+    public void HowManyGamesFromGenre(string genre)
     {
+        List<Game> games = repository.GetAll();
         List<Game> gamesFound = games.Where(g => g.Genre.Contains(genre, StringComparison.OrdinalIgnoreCase)).ToList();
         if (gamesFound.Any())
         {
@@ -377,8 +398,9 @@ public class GameService
         Leave();
     }
 
-    public void Top3GamesAfterYearOrderedByRating(List<Game> games, int year)
+    public void Top3GamesAfterYearOrderedByRating(int year)
     {
+        List<Game> games = repository.GetAll();
         List<Game> gamesFound = games.Where(g => g.ReleaseYear > year).OrderByDescending(g => g.Rating).Take(3).ToList();
 
         foreach (Game game in gamesFound)
