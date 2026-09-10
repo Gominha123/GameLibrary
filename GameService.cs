@@ -10,53 +10,49 @@ public class GameService
 
 
     public void AddGame()
-    {   
+    {
         Console.WriteLine("Add Game");
         Console.WriteLine("Enter the title of the game:");
         string title = Console.ReadLine();
-        if(string.IsNullOrWhiteSpace(title))
+        if (string.IsNullOrWhiteSpace(title))
         {
-            Console.WriteLine("Title cannot be empty.");
-            Leave();
-            return;
+            throw new InvalidGameException("Title cannot be empty.");
         }
         Console.WriteLine("Enter the genre of the game:");
         string genre = Console.ReadLine();
+        if(string.IsNullOrWhiteSpace(genre))
+        {
+            throw new InvalidGameException("Genre cannot be empty.");
+        }
         Console.WriteLine("Enter the developer of the game:");
         string developer = Console.ReadLine();
+
+        List<Game> duplicate = repository.GetAll().Where(g => g.Title == title && g.Developer == developer).ToList();
+        if (duplicate.Any())
+        {
+            throw new InvalidGameException("Game already exists");
+
+        }
+
         Console.WriteLine("Enter the rating of the game: (0-5)");
         string rating = Console.ReadLine();
         rating = rating.Replace(',', '.'); // normalize
-        if (!float.TryParse(rating, NumberStyles.Float, CultureInfo.InvariantCulture, out float ratingValue))
-        {
-            // handle invalid input
-            Console.WriteLine("invalid input");
-            Leave();
-            return;
-        }
+        float ratingValue = float.Parse(rating, CultureInfo.InvariantCulture);
         if (ratingValue < 0 || ratingValue > 5)
         {
-            Console.WriteLine("Rating must be between 0 and 5.");
-            Leave();
-            return;
+            throw new InvalidGameException("Rating Value must be between 0 and 5");
         }
 
         Console.WriteLine("Enter the realease year of the game:");
         string releaseYear = Console.ReadLine();
-        if (!int.TryParse(releaseYear, out int releaseYearInt))
-        {
-            Console.WriteLine("Invalid release year. Please enter a valid number.");
-            Leave();
-            return;
-        }
+        int releaseYearInt = int.Parse(releaseYear);
         if (releaseYearInt < 1950 || releaseYearInt > DateTime.Now.Year)
         {
-            Console.WriteLine($"Release year must be between 1950 and {DateTime.Now.Year}.");
-            Leave();
-            return;
+            throw new InvalidGameException($"Release year must be between 1950 and {DateTime.Now.Year}.");
         }
 
         Game newGame = new Game(title, genre, developer, ratingValue, releaseYearInt);
+
         repository.Add(newGame);
 
         Console.Clear();

@@ -26,7 +26,28 @@
             if (option == 1)
             {
                 Console.Clear();
-                service.AddGame();
+                try
+                {
+                    service.AddGame();
+                }
+                catch (InvalidGameException e)
+                {
+                    Console.WriteLine(e.Message);
+                    Console.ReadLine();
+                    Console.Clear();
+                }
+                catch (FormatException e)
+                {
+                    Console.WriteLine("Invalid number format.");
+                    Console.ReadLine();
+                    Console.Clear();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                    Console.ReadLine();
+                    Console.Clear();
+                }
             }
             else if (option == 2)
             {
