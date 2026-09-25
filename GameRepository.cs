@@ -4,6 +4,11 @@ public class GameRepository<T>
 {
     private List<T> items = new List<T>();
 
+    public void AddMultiple(List<T> itemsToAdd)
+    {
+        items.AddRange(itemsToAdd);
+    }
+
     public void Add(T item)
     {
         // adicionar o jogo

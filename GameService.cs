@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 
 public class GameService
 {
@@ -7,411 +8,171 @@ public class GameService
     {
         repository = _repository;
     }
+    public GameConsoleUI gameConsoleUI = new GameConsoleUI();
 
-
-    public void AddGame()
+    public void AddGame(string title, string genre, string developer, string rating, string releaseYear)
     {
-        Console.WriteLine("Add Game");
-        Console.WriteLine("Enter the title of the game:");
-        string title = Console.ReadLine();
         if (string.IsNullOrWhiteSpace(title))
         {
             throw new InvalidGameException("Title cannot be empty.");
         }
-        Console.WriteLine("Enter the genre of the game:");
-        string genre = Console.ReadLine();
-        if(string.IsNullOrWhiteSpace(genre))
+
+        if (string.IsNullOrWhiteSpace(genre))
         {
             throw new InvalidGameException("Genre cannot be empty.");
         }
-        Console.WriteLine("Enter the developer of the game:");
-        string developer = Console.ReadLine();
 
-        List<Game> duplicate = repository.GetAll().Where(g => g.Title == title && g.Developer == developer).ToList();
+        List<Game> duplicate = GetGames(repository.GetAll(), g => g.Title.Equals(title, StringComparison.OrdinalIgnoreCase) && g.Developer.Equals(developer, StringComparison.OrdinalIgnoreCase));
         if (duplicate.Any())
         {
             throw new InvalidGameException("Game already exists");
-
         }
 
-        Console.WriteLine("Enter the rating of the game: (0-5)");
-        string rating = Console.ReadLine();
-        rating = rating.Replace(',', '.'); // normalize
-        float ratingValue = float.Parse(rating, CultureInfo.InvariantCulture);
-        if (ratingValue < 0 || ratingValue > 5)
-        {
-            throw new InvalidGameException("Rating Value must be between 0 and 5");
-        }
+        float ratingValue = ValidateRatingValue(rating);
 
-        Console.WriteLine("Enter the realease year of the game:");
-        string releaseYear = Console.ReadLine();
-        int releaseYearInt = int.Parse(releaseYear);
-        if (releaseYearInt < 1950 || releaseYearInt > DateTime.Now.Year)
-        {
-            throw new InvalidGameException($"Release year must be between 1950 and {DateTime.Now.Year}.");
-        }
+        int releaseYearInt = ValidateReleaseYearValue(releaseYear);
 
         Game newGame = new Game(title, genre, developer, ratingValue, releaseYearInt);
 
         repository.Add(newGame);
 
-        Console.Clear();
     }
 
     public void ListGames()
     {
-        Console.WriteLine("List Games");
-
         ShowGame(repository.GetAll());
-        Leave();
     }
 
-    public void SearchGame()
+    public List<Game> SearchGame(int option, string searchCondition)
     {
-        Console.Clear();
-        int option = -1;
-        string searchCondition = "";
-        while (option > 6 || option < 1)
-        {
-            Console.WriteLine("Search Game");
-            Console.WriteLine("Select how you wanna search the game");
-            Console.WriteLine("1 - Title");
-            Console.WriteLine("2 - Genre");
-            Console.WriteLine("3 - Developer");
-            Console.WriteLine("4 - Rating");
-            Console.WriteLine("5 - Release Year");
-            Console.WriteLine("6 - Exit");
-
-            option = ReadInt();
-
-            Console.Clear();
-            if (option == 1)
-            {
-                Console.WriteLine("Enter the title of the game:");
-            }
-            else if (option == 2)
-            {
-                Console.WriteLine("Enter the genre of the game:");
-            }
-            else if (option == 3)
-            {
-                Console.WriteLine("Enter the developer of the game:");
-            }
-            else if (option == 4)
-            {
-                Console.WriteLine("Enter the rating of the game:");
-            }
-            else if (option == 5)
-            {
-                Console.WriteLine("Enter the release year of the game:");
-            }
-            else if (option == 6)
-            {
-                return;
-            }
-            else
-            {
-                Console.WriteLine("Invalid option");
-            }
-        }
-
         List<Game> games = repository.GetAll();
         List<Game> results = new List<Game>();
-        searchCondition = Console.ReadLine();
         if (option == 1)
         {
-            results = games.Where(g => g.Title.Contains(searchCondition, StringComparison.OrdinalIgnoreCase)).ToList();
-            ShowGame(results);
+            results = GetGames(games, g => g.Title.Contains(searchCondition, StringComparison.OrdinalIgnoreCase));
         }
         else if (option == 2)
         {
-            results = games.Where(g => g.Genre.Contains(searchCondition, StringComparison.OrdinalIgnoreCase)).ToList();
-            ShowGame(results);
+            results = GetGames(games, g => g.Genre.Contains(searchCondition, StringComparison.OrdinalIgnoreCase));
         }
         else if (option == 3)
         {
-            results = games.Where(g => g.Developer.Contains(searchCondition, StringComparison.OrdinalIgnoreCase)).ToList();
-            ShowGame(results);
+            results = GetGames(games, g => g.Developer.Contains(searchCondition, StringComparison.OrdinalIgnoreCase));
         }
         else if (option == 4)
         {
             searchCondition = searchCondition.Replace(',', '.'); // normalize
+            float ratingValue = ValidateRatingValue(searchCondition);
 
-            if (!float.TryParse(searchCondition, NumberStyles.Float, CultureInfo.InvariantCulture, out float ratingValue))
-            {
-                Console.WriteLine("Invalid rating. Please enter a valid number.");
-                Leave();
-                return;
-            }
-            results = games.Where(g => g.Rating.Equals(ratingValue)).ToList();
-            //results = games.Where(g => g.Rating.ToString().Contains(searchCondition, StringComparison.OrdinalIgnoreCase)).ToList();
-            if (results.Count == 0)
-            {
-                Console.WriteLine("No games found with the specified rating.");
-                Leave();
-                return;
-            }
-            ShowGame(results);
+            results = GetGames(games, g => g.Rating.Equals(ratingValue));
         }
         else if (option == 5)
         {
-            if (!int.TryParse(searchCondition, out int releaseYearValue))
-            {
-                Console.WriteLine("Invalid release Year. Please enter a valid number.");
-                Leave();
-                return;
-            }
-            results = games.Where(g => g.ReleaseYear.Equals(releaseYearValue)).ToList();
-            if (!results.Any())
-            {
-                Console.WriteLine("No games found with the specified release year.");
-                Leave();
-                return;
-            }
-            ShowGame(results);
-        }
+            int releaseYearInt = ValidateReleaseYearValue(searchCondition);
 
-        Leave();
+            results = GetGames(games, g => g.ReleaseYear.Equals(releaseYearInt));
+        }
+        return results;
     }
 
-    public void RemoveGame()
+    public void RemoveGame(Game game)
     {
-        Console.WriteLine("Remove Game");
-        Console.WriteLine("Enter the title of the game you want to remove:");
+        repository.Remove(game);
+    }
 
-        string gameTitle = Console.ReadLine();
-
+    public List<Game> ChooseGameToRemove(string gameTitle)
+    {
         List<Game> games = repository.GetAll();
         List<Game> gamesToBeRemoved = new List<Game>();
 
-        gamesToBeRemoved = games.Where(g => g.Title.Equals(gameTitle, StringComparison.OrdinalIgnoreCase)).ToList();
-
+        gamesToBeRemoved = GetGames(games, g => g.Title.Contains(gameTitle, StringComparison.OrdinalIgnoreCase));
 
         if (!gamesToBeRemoved.Any())
         {
-            Console.WriteLine("Game not found");
-            Leave();
-            return;
+            throw new InvalidGameException("Game not found");
         }
-        else if (gamesToBeRemoved.Count == 1)
-        {
-            Console.WriteLine($"{gameTitle} was removed");
-            repository.Remove(gamesToBeRemoved[0]);
-            Leave();
-        }
-        else if (gamesToBeRemoved.Count > 1)
-        {
-            int i = 0;
-            foreach (Game game in gamesToBeRemoved)
-            {
-                Console.Write($"{i} - ");
-                ShowGame(game);
-                i++;
-            }
-            Console.WriteLine("Multiple games found with the same title. Please select the game you want to remove:\n");
-
-            int option = ReadInt();
-
-            if (option >= 0 && option < gamesToBeRemoved.Count)
-            {
-                Console.WriteLine($"{gameTitle} was removed");
-                repository.Remove(gamesToBeRemoved[option]);
-            }
-            else
-            {
-                Console.WriteLine("Invalid option. Operation canceled.");
-            }
-
-            Leave();
-        }
+        return gamesToBeRemoved;
     }
 
-    public void FilterGames()
-    {
-        int option = 0;
-
-        while (option > 6 || option < 1)
-        {
-            Console.WriteLine("Filter Games");
-            Console.WriteLine("Select how you wanna filter the games");
-            Console.WriteLine("1 - Games above rating");
-            Console.WriteLine("2 - Games by genre");
-            Console.WriteLine("3 - Games after release year");
-            Console.WriteLine("4 - Sort by rating");
-            Console.WriteLine("5 - Sort by release year");
-            Console.WriteLine("6 - Exit");
-            option = ReadInt();
-
-            List<Game> games = repository.GetAll();
-
-            if (option == 1)
-            {
-                Console.Clear();
-                Console.WriteLine("Enter rating: ");
-
-                string rating = Console.ReadLine();
-                rating = rating.Replace(',', '.'); // normalize
-                if (!float.TryParse(rating, NumberStyles.Float, CultureInfo.InvariantCulture, out float ratingValue))
-                {
-                    Console.WriteLine("Invalid rating. Please enter a valid number.");
-                    Leave();
-                    return;
-                }
-                if (ratingValue < 0 || ratingValue > 5)
-                {
-                    Console.WriteLine("Rating must be between 0 and 5.");
-                    Leave();
-                    return;
-                }
-
-                List<Game> gameSort = games.Where(g => g.Rating > ratingValue).ToList();
-
-                if (gameSort.Count > 0)
-                {
-                    ShowGame(gameSort);
-                }
-                else
-                {
-                    Console.WriteLine("No games found");
-                }
-                Leave();
-            }
-            else if (option == 2)
-            {
-                Console.Clear();
-                Console.WriteLine("Enter genre: ");
-                string genre = Console.ReadLine();
-                List<Game> gameSort = games.Where(g => g.Genre.Contains(genre, StringComparison.OrdinalIgnoreCase)).ToList();
-                if (gameSort.Count > 0)
-                {
-                    ShowGame(gameSort);
-                }
-                else
-                {
-                    Console.WriteLine("No games found");
-                }
-                Leave();
-            }
-            else if (option == 3)
-            {
-                Console.Clear();
-                Console.WriteLine("Enter release year: ");
-                int releaseYear = ReadInt();
-                if (releaseYear < 1950 || releaseYear > DateTime.Now.Year)
-                {
-                    Console.WriteLine("Invalid release year. Please enter a valid number.");
-                    Leave();
-                    return;
-                }
-
-                List<Game> gameSort = games.Where(g => g.ReleaseYear > releaseYear).ToList();
-                if (gameSort.Count > 0)
-                {
-                    ShowGame(gameSort);
-                }
-                else
-                {
-                    Console.WriteLine("No games found");
-                }
-                Leave();
-            }
-            else if (option == 4)
-            {
-                Console.Clear();
-                List<Game> gameSort = games.OrderByDescending(g => g.Rating).ToList();
-
-                if (gameSort.Count > 0)
-                {
-                    ShowGame(gameSort);
-                }
-                else Console.WriteLine("No games found");
-
-                Leave();
-            }
-            else if (option == 5)
-            {
-                Console.Clear();
-
-                List<Game> gameSort = games.OrderBy(g => g.ReleaseYear).ToList();
-
-                if (gameSort.Count > 0)
-                {
-                    ShowGame(gameSort);
-                }
-                else Console.WriteLine("No games found");
-
-                Leave();
-            }
-            else if (option != 6)
-            {
-                Console.Clear();
-                Console.WriteLine("Invalid option");
-            }
-        }
-        Console.Clear();
-    }
-
-    public void Statistics()
+    public List<Game> FilterGames(int option, string condition)
     {
         List<Game> games = repository.GetAll();
-        if (!games.Any())
+        List<Game> gameSort = new List<Game>();
+        if (option == 1)
         {
-            Console.WriteLine("No games found");
-            Leave();
-            return;
+            float ratingValue = ValidateRatingValue(condition);
+            gameSort = GetGames(games, g => g.Rating > ratingValue);
         }
-        Console.WriteLine("Statistics");
+        else if (option == 2)
+        {
+            gameSort = GetGames(games, g => g.Genre.Contains(condition, StringComparison.OrdinalIgnoreCase));
+        }
+        else if (option == 3)
+        {
+            int releaseYearInt = ValidateReleaseYearValue(condition);
+            gameSort = GetGames(games, g => g.ReleaseYear > releaseYearInt);
+        }
+        else if (option == 4)
+        {
+            gameSort = games.OrderByDescending(g => g.Rating).ToList();
+        }
+        else if (option == 5)
+        {
 
-        Console.WriteLine($"Total Games: {games.Count}");
-        Console.WriteLine($"Average rating: {games.Average(g => g.Rating):0.00}");
-        Console.WriteLine($"Highest Rated Game: {games.Max(g => g.Rating)}");
-        var top3Games = games.OrderByDescending(g => g.Rating).Take(3).Select(g => g.Title);
-        Console.WriteLine($"Top 3 rated games: {string.Join(", ", top3Games)}");
-        Console.WriteLine($"Lowest Rated Game: {games.Min(g => g.Rating)}");
-        Console.WriteLine($"Oldest Game: {games.MinBy(g => g.ReleaseYear).Title}");
-        Console.WriteLine($"Newest Game: {games.MaxBy(g => g.ReleaseYear).Title}");
+            gameSort = games.OrderBy(g => g.ReleaseYear).ToList();
+        }
+        return gameSort;
+    }
 
-        Leave();
+    public List<Game> Statistics()
+    {
+        return repository.GetAll();
     }
 
     public void HowManyGamesFromGenre(string genre)
     {
         List<Game> games = repository.GetAll();
-        List<Game> gamesFound = games.Where(g => g.Genre.Contains(genre, StringComparison.OrdinalIgnoreCase)).ToList();
+        List<Game> gamesFound = GetGames(games, g => g.Genre.Contains(genre, StringComparison.OrdinalIgnoreCase));
         if (gamesFound.Any())
         {
-            Console.WriteLine($"There are {genre} games.");
+            gameConsoleUI.PrintMessage($"There are {genre} games.");
 
-            Console.WriteLine($"Total {genre} Games: {gamesFound.Count}");
+            gameConsoleUI.PrintMessage($"Total {genre} Games: {gamesFound.Count}");
 
-            List<string> gameTitle = gamesFound.Select(g => g.Title).ToList();
             ShowGameName(gamesFound);
         }
         else
         {
-            Console.WriteLine($"There are no {genre} games.");
+            gameConsoleUI.PrintMessage($"There are no {genre} games.");
         }
-        Leave();
+        gameConsoleUI.Leave();
     }
 
-    public void Top3GamesAfterYearOrderedByRating(int year)
+    public void Top3GamesAfterYearOrderedByRating(string year)
     {
+        int yearValue = ValidateReleaseYearValue(year);
+
         List<Game> games = repository.GetAll();
-        List<Game> gamesFound = games.Where(g => g.ReleaseYear > year).OrderByDescending(g => g.Rating).Take(3).ToList();
+        List<Game> gamesFound = games.Where(g => g.ReleaseYear > yearValue).OrderByDescending(g => g.Rating).Take(3).ToList();
 
         foreach (Game game in gamesFound)
         {
-            Console.WriteLine($"Title: {game.Title}; Rating: {game.Rating}; Release Year: {game.ReleaseYear}");
+            gameConsoleUI.PrintMessage($"Title: {game.Title}; Rating: {game.Rating}; Release Year: {game.ReleaseYear}");
         }
-        Leave();
+        gameConsoleUI.Leave();
     }
 
-    public void ShowGame(Game game)
+    private static List<Game> GetGames(List<Game> games, Func<Game, bool> condition)
     {
-        Console.WriteLine($"Title: {game.Title}; Genre: {game.Genre}; Developer: {game.Developer}; Rating: {game.Rating}; Release Year: {game.ReleaseYear}");
+        return games.Where(condition).ToList();
     }
 
-    public void ShowGame(List<Game> games)
+    private void ShowGame(Game game)
+    {
+        gameConsoleUI.PrintMessage($"Title: {game.Title}; Genre: {game.Genre}; Developer: {game.Developer}; Rating: {game.Rating}; Release Year: {game.ReleaseYear}");
+    }
+
+    private void ShowGame(List<Game> games)
     {
         foreach (Game game in games)
         {
@@ -419,28 +180,39 @@ public class GameService
         }
     }
 
-    public void ShowGameName(List<Game> games)
+    private void ShowGameName(List<Game> games)
     {
         foreach (Game game in games)
         {
-            Console.WriteLine($"Title: {game.Title}");
+            gameConsoleUI.PrintMessage($"Title: {game.Title}");
         }
     }
 
-    public int ReadInt()
+    public int ValidateReleaseYearValue(string releaseYear)
     {
-        int result = 0;
-        if (!int.TryParse(Console.ReadLine(), out result))
+        int releaseYearInt = ParseValue(releaseYear, int.Parse);
+        if (releaseYearInt < 1950 || releaseYearInt > DateTime.Now.Year)
         {
-            result = -1;
+            throw new InvalidGameException($"Release year must be between 1950 and {DateTime.Now.Year}.");
         }
-        return result;
+
+        return releaseYearInt;
+
     }
 
-    public void Leave()
+    public float ValidateRatingValue(string rating)
     {
-        Console.WriteLine("Press Enter to exit...");
-        Console.ReadLine();
-        Console.Clear();
+        float ratingValue = ParseValue(rating, value => float.Parse(value, CultureInfo.InvariantCulture));
+        if (ratingValue < 0 || ratingValue > 5)
+        {
+            throw new InvalidGameException("Rating Value must be between 0 and 5");
+        }
+
+        return ratingValue;
+    }
+
+    private T ParseValue<T>(string value, Func<string, T> parser)
+    {
+        return parser(value);
     }
 }
