@@ -7,31 +7,6 @@ public class GameConsoleUI
         Console.Clear();
     }
 
-    public string GetTitle(string message)
-    {
-        Console.WriteLine(message);
-        string title = Console.ReadLine();
-
-        return title;
-    }
-
-    public string GetGenre(string message)
-    {
-        Console.WriteLine(message);
-        string genre = Console.ReadLine();
-
-        return genre;
-    }
-
-    public string GetDeveloper(string message)
-    {
-        Console.WriteLine(message);
-        string developer = Console.ReadLine();
-
-
-        return developer;
-    }
-
     public string GetRating(string message)
     {
         Console.WriteLine(message);
@@ -51,7 +26,6 @@ public class GameConsoleUI
     {
         Console.WriteLine(message);
         return Console.ReadLine();
-        
     }
 
     public void ShowMainMenu()

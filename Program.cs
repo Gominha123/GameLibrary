@@ -8,7 +8,7 @@
         GameFileService fileService = new GameFileService(repository);
         await fileService.LoadAllGames();
 
-        GameService service = new GameService(repository);
+        GameService service = new GameService(repository, repository);
         int option = -1;
 
         while (option != 9)
@@ -27,11 +27,11 @@
         {
             gameConsole.ClearConsole();
             gameConsole.PrintMessage("Add a new game");
-            string title = gameConsole.GetTitle("Enter the title of the game:");
-            string genre = gameConsole.GetGenre("Enter the genre of the game:");
-            string developer = gameConsole.GetDeveloper("Enter the developer of the game:");
+            string title = gameConsole.GetInput("Enter the title of the game:");
+            string genre = gameConsole.GetInput("Enter the genre of the game:");
+            string developer = gameConsole.GetInput("Enter the developer of the game:");
             string rating = gameConsole.GetRating("Enter the rating of the game (0.0 - 5.0):");
-            string releaseYear = gameConsole.GetYear("Enter the release year of the game:");
+            string releaseYear = gameConsole.GetInput("Enter the release year of the game:");
 
             ExecuteServiceAction(gameConsole, () => service.AddGame(title, genre, developer, rating, releaseYear));
 
@@ -41,8 +41,9 @@
         {
             gameConsole.ClearConsole();
             gameConsole.PrintMessage("List Games");
-
-            ExecuteServiceAction(gameConsole, service.ListGames);
+            List<Game> games = new List<Game>();
+            ExecuteServiceAction(gameConsole, () => games = service.GetAllGames());
+            gameConsole.ShowGame(games);
             gameConsole.Leave();
 
         }
@@ -111,7 +112,7 @@
         {
             gameConsole.ClearConsole();
             gameConsole.PrintMessage("Remove Game");
-            string gameTitle = gameConsole.GetTitle("Enter the title of the game you want to remove: ");
+            string gameTitle = gameConsole.GetInput("Enter the title of the game you want to remove: ");
             List<Game> gameResults = new List<Game>();
 
             ExecuteServiceAction(gameConsole, () => gameResults = service.ChooseGameToRemove(gameTitle));
@@ -152,7 +153,7 @@
         {
             gameConsole.ClearConsole();
             int filterOption = 0;
-            while (filterOption > 6 || filterOption < 1)
+            while (filterOption > 7 || filterOption < 1)
             {
                 gameConsole.PrintMessage("Filter Games");
                 gameConsole.PrintMessage("Select how you wanna filter the games");
@@ -161,43 +162,48 @@
                 gameConsole.PrintMessage("3 - Games after release year");
                 gameConsole.PrintMessage("4 - Sort by rating");
                 gameConsole.PrintMessage("5 - Sort by release year");
-                gameConsole.PrintMessage("6 - Exit");
+                gameConsole.PrintMessage("6 - Sort by title");
+                gameConsole.PrintMessage("7 - Exit");
                 filterOption = gameConsole.ReadInt();
+                gameConsole.ClearConsole();
 
                 List<Game> gamesSort = new List<Game>();
                 if (filterOption == 1)
                 {
-                    gameConsole.ClearConsole();
                     string rating = gameConsole.GetRating("Enter rating: ");
 
-                    ExecuteServiceAction(gameConsole, () => gamesSort = service.FilterGames(filterOption, rating));
+                    ExecuteServiceAction(gameConsole, () => gamesSort = service.FilterByRating(rating));
                 }
                 else if (filterOption == 2)
                 {
-                    gameConsole.ClearConsole();
-                    string genre = gameConsole.GetGenre("Enter genre: ");
+                    string genre = gameConsole.GetInput("Enter genre: ");
 
-                    ExecuteServiceAction(gameConsole, () => gamesSort = service.FilterGames(filterOption, genre));
+                    ExecuteServiceAction(gameConsole, () => gamesSort = service.FilterByGenre( genre));
                 }
                 else if (filterOption == 3)
                 {
-                    gameConsole.ClearConsole();
                     string releaseYear = gameConsole.GetYear("Enter the release year of the Game:");
-                    ExecuteServiceAction(gameConsole, () => gamesSort = service.FilterGames(filterOption, releaseYear));
+                    ExecuteServiceAction(gameConsole, () => gamesSort = service.FilterByReleaseYear(releaseYear));
                 }
                 else if (filterOption == 4)
                 {
-                    gameConsole.ClearConsole();
-                    ExecuteServiceAction(gameConsole, () => gamesSort = service.FilterGames(filterOption, ""));
+                    ExecuteServiceAction(gameConsole, () => gamesSort = service.SortByRating());
                 }
                 else if (filterOption == 5)
                 {
-                    ExecuteServiceAction(gameConsole, () => gamesSort = service.FilterGames(filterOption, ""));
+                    ExecuteServiceAction(gameConsole, () => gamesSort = service.SortByReleaseYear());
                 }
-                else if (filterOption != 6)
+                else if (filterOption == 6)
                 {
-                    gameConsole.ClearConsole();
+                    ExecuteServiceAction(gameConsole, () => gamesSort = service.SortByTitle());
+                }
+                else if (filterOption != 7)
+                {
                     gameConsole.PrintMessage("Invalid option");
+                }
+                else 
+                {
+                    return;
                 }
 
                 if (gamesSort.Any())
@@ -216,7 +222,7 @@
         {
             List<Game> games = new List<Game>();
             gameConsole.ClearConsole();
-            ExecuteServiceAction(gameConsole, () => games = service.Statistics);
+            ExecuteServiceAction(gameConsole, () => games = service.GetAllGames());
 
             if (!games.Any())
             {
@@ -226,14 +232,12 @@
             }
             gameConsole.PrintMessage("Statistics");
             gameConsole.PrintMessage($"Total Games: {games.Count}");
-            gameConsole.PrintMessage($"Average rating: {games.Average(g => g.Rating):0.00}");
-            gameConsole.PrintMessage($"Highest Rated Game: {games.Max(g => g.Rating)}");
-            var top3Games = games.OrderByDescending(g => g.Rating).Take(3).Select(g => g.Title);
-            gameConsole.PrintMessage($"Top 3 rated games: {string.Join(", ", top3Games)}");
-            gameConsole.PrintMessage($"Lowest Rated Game: {games.Min(g => g.Rating)}");
-            gameConsole.PrintMessage($"Oldest Game: {games.MinBy(g => g.ReleaseYear).Title}");
-            gameConsole.PrintMessage($"Newest Game: {games.MaxBy(g => g.ReleaseYear).Title}");
-
+            gameConsole.PrintMessage($"Average rating: {service.Average(games):0.00}");
+            gameConsole.PrintMessage($"Highest Rated Game: {service.HighestRated(games)}");
+            gameConsole.PrintMessage($"Top 3 rated games: {service.Top3Rated(games)}");
+            gameConsole.PrintMessage($"Lowest Rated Game: {service.LowestRated(games)}");
+            gameConsole.PrintMessage($"Oldest Game: {service.Oldest(games)}");
+            gameConsole.PrintMessage($"Newest Game: {service.Newest(games)}");
             gameConsole.Leave();
 
         }
@@ -241,13 +245,36 @@
         {
             gameConsole.ClearConsole();
             string genre = gameConsole.GetInput("Enter the genre to count games from:");
-            ExecuteServiceAction(gameConsole, () => service.HowManyGamesFromGenre(genre));
+            List<Game> gamesFound = new List<Game>();
+            ExecuteServiceAction(gameConsole, () => gamesFound = service.HowManyGamesFromGenre(genre));
+
+            if (gamesFound.Any())
+            {
+                gameConsole.PrintMessage($"There are {genre} games.");
+
+                gameConsole.PrintMessage($"Total {genre} Games: {gamesFound.Count}");
+
+                gameConsole.ShowGameName(gamesFound);
+            }
+            else
+            {
+                gameConsole.PrintMessage($"There are no {genre} games.");
+            }
+            gameConsole.Leave();
         }
         else if (option == 8)
         {
             gameConsole.ClearConsole();
             string year = gameConsole.GetYear("Select the year: ");
-            ExecuteServiceAction(gameConsole, () => service.Top3GamesAfterYearOrderedByRating(year));
+            List<Game> gamesFound = new List<Game>();
+            ExecuteServiceAction(gameConsole, () => gamesFound = service.Top3GamesAfterYearOrderedByRating(year));
+
+            foreach (Game game in gamesFound)
+            {
+                gameConsole.PrintMessage($"Title: {game.Title}; Rating: {game.Rating}; Release Year: {game.ReleaseYear}");
+            }
+            gameConsole.Leave();
+
         }
         else if (option != 9)
         {

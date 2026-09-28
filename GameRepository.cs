@@ -1,6 +1,6 @@
 ﻿using System;
 
-public class GameRepository<T>
+public class GameRepository<T> : IGameReader<T>, IGameWriter<T>
 {
     private List<T> items = new List<T>();
 
@@ -17,7 +17,6 @@ public class GameRepository<T>
 
     public List<T> GetAll()
     {
-        // devolver os jogos
         return items;
     }
 

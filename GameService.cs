@@ -3,12 +3,13 @@ using System.Globalization;
 
 public class GameService
 {
-    private GameRepository<Game> repository;
-    public GameService(GameRepository<Game> _repository)
+    private IGameReader<Game> reader;
+    private IGameWriter<Game> writer;
+    public GameService(IGameReader<Game> _reader, IGameWriter<Game> _writer)
     {
-        repository = _repository;
+        reader = _reader;
+        writer = _writer;
     }
-    public GameConsoleUI gameConsoleUI = new GameConsoleUI();
 
     public void AddGame(string title, string genre, string developer, string rating, string releaseYear)
     {
@@ -22,7 +23,7 @@ public class GameService
             throw new InvalidGameException("Genre cannot be empty.");
         }
 
-        List<Game> duplicate = GetGames(repository.GetAll(), g => g.Title.Equals(title, StringComparison.OrdinalIgnoreCase) && g.Developer.Equals(developer, StringComparison.OrdinalIgnoreCase));
+        List<Game> duplicate = GetGames(reader.GetAll(), g => g.Title.Equals(title, StringComparison.OrdinalIgnoreCase) && g.Developer.Equals(developer, StringComparison.OrdinalIgnoreCase));
         if (duplicate.Any())
         {
             throw new InvalidGameException("Game already exists");
@@ -34,18 +35,12 @@ public class GameService
 
         Game newGame = new Game(title, genre, developer, ratingValue, releaseYearInt);
 
-        repository.Add(newGame);
-
-    }
-
-    public void ListGames()
-    {
-        ShowGame(repository.GetAll());
+        writer.Add(newGame);
     }
 
     public List<Game> SearchGame(int option, string searchCondition)
     {
-        List<Game> games = repository.GetAll();
+        List<Game> games = reader.GetAll();
         List<Game> results = new List<Game>();
         if (option == 1)
         {
@@ -61,7 +56,7 @@ public class GameService
         }
         else if (option == 4)
         {
-            searchCondition = searchCondition.Replace(',', '.'); // normalize
+            searchCondition = searchCondition.Replace(',', '.');
             float ratingValue = ValidateRatingValue(searchCondition);
 
             results = GetGames(games, g => g.Rating.Equals(ratingValue));
@@ -77,12 +72,12 @@ public class GameService
 
     public void RemoveGame(Game game)
     {
-        repository.Remove(game);
+        writer.Remove(game);
     }
 
     public List<Game> ChooseGameToRemove(string gameTitle)
     {
-        List<Game> games = repository.GetAll();
+        List<Game> games = reader.GetAll();
         List<Game> gamesToBeRemoved = new List<Game>();
 
         gamesToBeRemoved = GetGames(games, g => g.Title.Contains(gameTitle, StringComparison.OrdinalIgnoreCase));
@@ -94,98 +89,97 @@ public class GameService
         return gamesToBeRemoved;
     }
 
-    public List<Game> FilterGames(int option, string condition)
+    public List<Game> FilterByRating(string condition)
     {
-        List<Game> games = repository.GetAll();
-        List<Game> gameSort = new List<Game>();
-        if (option == 1)
-        {
-            float ratingValue = ValidateRatingValue(condition);
-            gameSort = GetGames(games, g => g.Rating > ratingValue);
-        }
-        else if (option == 2)
-        {
-            gameSort = GetGames(games, g => g.Genre.Contains(condition, StringComparison.OrdinalIgnoreCase));
-        }
-        else if (option == 3)
-        {
-            int releaseYearInt = ValidateReleaseYearValue(condition);
-            gameSort = GetGames(games, g => g.ReleaseYear > releaseYearInt);
-        }
-        else if (option == 4)
-        {
-            gameSort = games.OrderByDescending(g => g.Rating).ToList();
-        }
-        else if (option == 5)
-        {
-
-            gameSort = games.OrderBy(g => g.ReleaseYear).ToList();
-        }
-        return gameSort;
+        List<Game> games = reader.GetAll();
+        float ratingValue = ValidateRatingValue(condition);
+        return GetGames(games, g => g.Rating > ratingValue);
     }
 
-    public List<Game> Statistics()
+    public List<Game> FilterByGenre(string condition)
     {
-        return repository.GetAll();
+        List<Game> games = reader.GetAll();
+        return GetGames(games, g => g.Genre.Contains(condition, StringComparison.OrdinalIgnoreCase));
     }
 
-    public void HowManyGamesFromGenre(string genre)
+    public List<Game> FilterByReleaseYear(string condition)
     {
-        List<Game> games = repository.GetAll();
-        List<Game> gamesFound = GetGames(games, g => g.Genre.Contains(genre, StringComparison.OrdinalIgnoreCase));
-        if (gamesFound.Any())
-        {
-            gameConsoleUI.PrintMessage($"There are {genre} games.");
-
-            gameConsoleUI.PrintMessage($"Total {genre} Games: {gamesFound.Count}");
-
-            ShowGameName(gamesFound);
-        }
-        else
-        {
-            gameConsoleUI.PrintMessage($"There are no {genre} games.");
-        }
-        gameConsoleUI.Leave();
+        List<Game> games = reader.GetAll();
+        int releaseYearInt = ValidateReleaseYearValue(condition);
+        return GetGames(games, g => g.ReleaseYear > releaseYearInt);
     }
 
-    public void Top3GamesAfterYearOrderedByRating(string year)
+    public List<Game> SortByRating()
+    {
+        List<Game> games = reader.GetAll();
+        return games.OrderByDescending(g => g.Rating).ToList();
+    }
+
+    public List<Game> SortByReleaseYear()
+    {
+        List<Game> games = reader.GetAll();
+        return games.OrderBy(g => g.ReleaseYear).ToList();
+    }
+
+    public List<Game> SortByTitle()
+    {
+        List<Game> games = reader.GetAll();
+        return games.OrderBy(g => g.Title).ToList();
+    }
+
+    public List<Game> GetAllGames()
+    {
+        return reader.GetAll();
+    }
+
+    public float Average(List<Game> games)
+    {
+        return games.Average(g => g.Rating);
+    }
+
+    public float HighestRated(List<Game> games)
+    {
+        return games.Max(g => g.Rating);
+    }
+
+    public float LowestRated(List<Game> games)
+    {
+        return games.Min(g => g.Rating);
+    }
+
+    public string Top3Rated(List<Game> games)
+    {
+        var top3Games = games.OrderByDescending(g => g.Rating).Take(3).Select(g => g.Title);
+        return string.Join(", ", top3Games);
+    }
+
+    public string Oldest(List<Game> games)
+    {
+        return games.MinBy(g => g.ReleaseYear).Title;
+    }
+
+    public string Newest(List<Game> games)
+    {
+        return games.MaxBy(g => g.ReleaseYear).Title;
+    }
+
+    public List<Game> HowManyGamesFromGenre(string genre)
+    {
+        List<Game> games = reader.GetAll();
+        return GetGames(games, g => g.Genre.Contains(genre, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public List<Game> Top3GamesAfterYearOrderedByRating(string year)
     {
         int yearValue = ValidateReleaseYearValue(year);
 
-        List<Game> games = repository.GetAll();
-        List<Game> gamesFound = games.Where(g => g.ReleaseYear > yearValue).OrderByDescending(g => g.Rating).Take(3).ToList();
-
-        foreach (Game game in gamesFound)
-        {
-            gameConsoleUI.PrintMessage($"Title: {game.Title}; Rating: {game.Rating}; Release Year: {game.ReleaseYear}");
-        }
-        gameConsoleUI.Leave();
+        List<Game> games = reader.GetAll();
+        return games.Where(g => g.ReleaseYear > yearValue).OrderByDescending(g => g.Rating).Take(3).ToList();
     }
 
     private static List<Game> GetGames(List<Game> games, Func<Game, bool> condition)
     {
         return games.Where(condition).ToList();
-    }
-
-    private void ShowGame(Game game)
-    {
-        gameConsoleUI.PrintMessage($"Title: {game.Title}; Genre: {game.Genre}; Developer: {game.Developer}; Rating: {game.Rating}; Release Year: {game.ReleaseYear}");
-    }
-
-    private void ShowGame(List<Game> games)
-    {
-        foreach (Game game in games)
-        {
-            ShowGame(game);
-        }
-    }
-
-    private void ShowGameName(List<Game> games)
-    {
-        foreach (Game game in games)
-        {
-            gameConsoleUI.PrintMessage($"Title: {game.Title}");
-        }
     }
 
     public int ValidateReleaseYearValue(string releaseYear)
