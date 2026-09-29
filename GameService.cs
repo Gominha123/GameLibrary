@@ -5,6 +5,7 @@ public class GameService
 {
     private IGameReader<Game> reader;
     private IGameWriter<Game> writer;
+
     public GameService(IGameReader<Game> _reader, IGameWriter<Game> _writer)
     {
         reader = _reader;
@@ -19,6 +20,11 @@ public class GameService
         }
 
         if (string.IsNullOrWhiteSpace(genre))
+        {
+            throw new InvalidGameException("Genre cannot be empty.");
+        }
+
+        if (string.IsNullOrWhiteSpace(developer))
         {
             throw new InvalidGameException("Genre cannot be empty.");
         }
@@ -38,36 +44,39 @@ public class GameService
         writer.Add(newGame);
     }
 
-    public List<Game> SearchGame(int option, string searchCondition)
+    public List<Game> SearchByTitle(string searchCondition)
     {
         List<Game> games = reader.GetAll();
-        List<Game> results = new List<Game>();
-        if (option == 1)
-        {
-            results = GetGames(games, g => g.Title.Contains(searchCondition, StringComparison.OrdinalIgnoreCase));
-        }
-        else if (option == 2)
-        {
-            results = GetGames(games, g => g.Genre.Contains(searchCondition, StringComparison.OrdinalIgnoreCase));
-        }
-        else if (option == 3)
-        {
-            results = GetGames(games, g => g.Developer.Contains(searchCondition, StringComparison.OrdinalIgnoreCase));
-        }
-        else if (option == 4)
-        {
-            searchCondition = searchCondition.Replace(',', '.');
-            float ratingValue = ValidateRatingValue(searchCondition);
+        return GetGames(games, g => g.Title.Contains(searchCondition, StringComparison.OrdinalIgnoreCase));
+    }
 
-            results = GetGames(games, g => g.Rating.Equals(ratingValue));
-        }
-        else if (option == 5)
-        {
-            int releaseYearInt = ValidateReleaseYearValue(searchCondition);
+    public List<Game> SearchByGenre(string searchCondition)
+    {
+        List<Game> games = reader.GetAll();
+        return GetGames(games, g => g.Genre.Contains(searchCondition, StringComparison.OrdinalIgnoreCase));
+    }
 
-            results = GetGames(games, g => g.ReleaseYear.Equals(releaseYearInt));
-        }
-        return results;
+    public List<Game> SearchByDeveloper(string searchCondition)
+    {
+        List<Game> games = reader.GetAll();
+        return GetGames(games, g => g.Developer.Contains(searchCondition, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public List<Game> SearchByRating(string searchCondition)
+    {
+        List<Game> games = reader.GetAll();
+        searchCondition = searchCondition.Replace(',', '.');
+        float ratingValue = ValidateRatingValue(searchCondition);
+
+        return GetGames(games, g => g.Rating.Equals(ratingValue));
+    }
+
+    public List<Game> SearchByReleaseYear(string searchCondition)
+    {
+        List<Game> games = reader.GetAll();
+        int releaseYearInt = ValidateReleaseYearValue(searchCondition);
+        
+        return GetGames(games, g => g.ReleaseYear.Equals(releaseYearInt));
     }
 
     public void RemoveGame(Game game)
@@ -127,11 +136,6 @@ public class GameService
         return games.OrderBy(g => g.Title).ToList();
     }
 
-    public List<Game> GetAllGames()
-    {
-        return reader.GetAll();
-    }
-
     public float Average(List<Game> games)
     {
         return games.Average(g => g.Rating);
@@ -180,6 +184,11 @@ public class GameService
     private static List<Game> GetGames(List<Game> games, Func<Game, bool> condition)
     {
         return games.Where(condition).ToList();
+    }
+
+    public List<Game> GetAllGames()
+    {
+        return reader.GetAll();
     }
 
     public int ValidateReleaseYearValue(string releaseYear)

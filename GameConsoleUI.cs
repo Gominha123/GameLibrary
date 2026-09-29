@@ -7,10 +7,15 @@ public class GameConsoleUI
         Console.Clear();
     }
 
-    public string GetRating(string message)
+    public string GetRatingValueInput(string message)
     {
         Console.WriteLine(message);
         string rating = Console.ReadLine();
+        return GetRating(rating);
+    }
+
+    public string GetRating(string rating)
+    {
         rating = rating.Replace(',', '.'); // normalize
         return rating;
     }

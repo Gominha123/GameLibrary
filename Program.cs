@@ -30,7 +30,7 @@
             string title = gameConsole.GetInput("Enter the title of the game:");
             string genre = gameConsole.GetInput("Enter the genre of the game:");
             string developer = gameConsole.GetInput("Enter the developer of the game:");
-            string rating = gameConsole.GetRating("Enter the rating of the game (0.0 - 5.0):");
+            string rating = gameConsole.GetRatingValueInput("Enter the rating of the game (0.0 - 5.0):");
             string releaseYear = gameConsole.GetInput("Enter the release year of the game:");
 
             ExecuteServiceAction(gameConsole, () => service.AddGame(title, genre, developer, rating, releaseYear));
@@ -70,22 +70,33 @@
                 if (searchOption == 1)
                 {
                     gameConsole.PrintMessage("Enter the title of the game:");
+                    searchCondition = gameConsole.GetInput("");
+                    ExecuteServiceAction(gameConsole, () => searchResults = service.SearchByTitle(searchCondition));
+
                 }
                 else if (searchOption == 2)
                 {
                     gameConsole.PrintMessage("Enter the genre of the game:");
+                    searchCondition = gameConsole.GetInput("");
+                    ExecuteServiceAction(gameConsole, () => searchResults = service.SearchByGenre(searchCondition));
                 }
                 else if (searchOption == 3)
                 {
                     gameConsole.PrintMessage("Enter the developer of the game:");
+                    searchCondition = gameConsole.GetInput("");
+                    ExecuteServiceAction(gameConsole, () => searchResults = service.SearchByDeveloper(searchCondition));
                 }
                 else if (searchOption == 4)
                 {
                     gameConsole.PrintMessage("Enter the rating of the game:");
+                    searchCondition = gameConsole.GetInput("");
+                    ExecuteServiceAction(gameConsole, () => searchResults = service.SearchByRating(searchCondition));
                 }
                 else if (searchOption == 5)
                 {
                     gameConsole.PrintMessage("Enter the release year of the game:");
+                    searchCondition = gameConsole.GetInput("");
+                    ExecuteServiceAction(gameConsole, () => searchResults = service.SearchByReleaseYear(searchCondition));
                 }
                 else if (searchOption == 6)
                 {
@@ -95,9 +106,8 @@
                 {
                     gameConsole.PrintMessage("Invalid option");
                 }
-                searchCondition = gameConsole.GetInput("");
             }
-            ExecuteServiceAction(gameConsole, () => searchResults = service.SearchGame(searchOption, searchCondition));
+
             if (!searchResults.Any())
             {
                 gameConsole.PrintMessage("No games found matching the search criteria.");
@@ -170,7 +180,7 @@
                 List<Game> gamesSort = new List<Game>();
                 if (filterOption == 1)
                 {
-                    string rating = gameConsole.GetRating("Enter rating: ");
+                    string rating = gameConsole.GetRatingValueInput("Enter rating: ");
 
                     ExecuteServiceAction(gameConsole, () => gamesSort = service.FilterByRating(rating));
                 }
