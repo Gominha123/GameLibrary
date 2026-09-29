@@ -7,4 +7,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+<ItemGroup>
+  <Compile Remove="CSharpReview.Tests\**" />
+  <EmbeddedResource Remove="CSharpReview.Tests\**" />
+  <None Remove="CSharpReview.Tests\**" />
+</ItemGroup>
+
 </Project>
